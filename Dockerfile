@@ -10,8 +10,8 @@ COPY . .
 # Build the project
 RUN mvn clean package -DskipTests
 
-# Use a smaller base image for the final container
-FROM openjdk:17-jdk-slim
+# Use a modern, supported base image for the final container
+FROM eclipse-temurin:17-jre-alpine
 
 # Set the working directory
 WORKDIR /app
