@@ -28,11 +28,8 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // Allow all pre-flight OPTIONS requests
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // Allow WebSocket connections
                         .requestMatchers("/ws-chat/**").permitAll()
-                        // Allow all other requests
                         .anyRequest().permitAll()
                 );
         return http.build();
@@ -41,13 +38,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Allow all origins
-        configuration.setAllowedOriginPatterns(Collections.singletonList("*"));
+        // THE FINAL FIX: Using setAllowedOrigins which is standard, instead of setAllowedOriginPatterns
+        configuration.setAllowedOrigins(Collections.singletonList("*"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        // Explicitly allow all headers
-        configuration.setAllowedHeaders(Arrays.asList("*"));
-        // THE FIX: Set to false. Mobile browsers block POST requests if this is true and origin is '*'.
-        // Since you use LocalStorage for auth, you do not need credentials (cookies).
+        configuration.setAllowedHeaders(Collections.singletonList("*"));
+        // This remains crucial for mobile browsers
         configuration.setAllowCredentials(false);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
