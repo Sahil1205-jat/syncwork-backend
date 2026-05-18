@@ -85,7 +85,8 @@ public class EmployeeController {
                     "Username: " + savedEmp.getEmpCode() + "\n" +
                     "Temporary Password: " + randomPassword + "\n\n" +
                     "For security reasons, please change your password after your first login.";
-            emailService.sendEmail(savedEmp.getEmail(), subject, body);
+            // emailService.sendEmail(savedEmp.getEmail(), subject, body); // Temporarily disabled to avoid timeout
+            System.out.println("Employee created successfully. Email sending disabled. Password: " + randomPassword);
         } catch (Exception e) {
             System.err.println("Email fail: " + e.getMessage());
         }
