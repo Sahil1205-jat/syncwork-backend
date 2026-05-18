@@ -84,13 +84,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-websocket</artifactId>
         </dependency>
-
-        <!-- THE FIX: Added Resend library for sending emails via API -->
-        <dependency>
-            <groupId>com.resend</groupId>
-            <artifactId>resend-java</artifactId>
-            <version>0.8.0</version>
-        </dependency>
     </dependencies>
 
     <build>
