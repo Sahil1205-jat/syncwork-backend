@@ -11,18 +11,11 @@ public class EmailService {
     @Autowired
     private JavaMailSender mailSender;
 
-    /**
-     * SyncWork ke notifications bhejne ke liye universal method
-     * @param toEmail - Jisko mail bhejna hai (Employee/Admin)
-     * @param subject - Mail ka heading
-     * @param body - Mail ka message content
-     */
     public void sendEmail(String toEmail, String subject, String body) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
-
-            // Note: Ye 'From' address application.properties se match hona chahiye
-            message.setFrom("noreply.syncwork@gmail.com");
+            // This 'from' address should match the username in application.properties
+            message.setFrom("syncwork0@gmail.com");
             message.setTo(toEmail);
             message.setSubject(subject);
             message.setText(body);
@@ -31,8 +24,9 @@ public class EmailService {
             System.out.println("✅ Success: Email successfully sent to " + toEmail);
 
         } catch (Exception e) {
-            System.err.println("❌ Error: Email send nahi ho paya! Check logs: " + e.getMessage());
-            // Project ko crash hone se bachane ke liye hum sirf print kar rahe hain
+            System.err.println("❌ Error sending email: " + e.getMessage());
+            // Re-throwing the exception can help in debugging deployment logs
+            throw new RuntimeException("Failed to send email", e);
         }
     }
 }
