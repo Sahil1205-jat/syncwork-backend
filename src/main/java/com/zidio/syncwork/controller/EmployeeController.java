@@ -71,24 +71,30 @@ public class EmployeeController {
         public void setNewPassword(String newPassword) { this.newPassword = newPassword; }
     }
 
-    // 1. Naya Employee Add karna + Welcome Email
+    // 1. Naya Employee Add karna + Welcome Email (Async)
     @PostMapping
     public Employee addEmployee(@RequestBody Employee employee) {
         String randomPassword = generateRandomPassword();
         employee.setPassword(passwordEncoder.encode(randomPassword));
         Employee savedEmp = employeeRepository.save(employee);
-        try {
-            String subject = "Your SyncWork Account Details";
-            String body = "Hi " + savedEmp.getName() + ",\n\n" +
-                    "Welcome to SyncWork! Your account has been successfully created.\n\n" +
-                    "Here are your login credentials:\n" +
-                    "Username: " + savedEmp.getEmpCode() + "\n" +
-                    "Temporary Password: " + randomPassword + "\n\n" +
-                    "For security reasons, please change your password after your first login.";
-            emailService.sendEmail(savedEmp.getEmail(), subject, body);
-        } catch (Exception e) {
-            System.err.println("Email fail: " + e.getMessage());
-        }
+        
+        // Execute email sending in a background worker thread
+        // This prevents the SMTP connection or server-side blocks from hanging the request thread!
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            try {
+                String subject = "Your SyncWork Account Details";
+                String body = "Hi " + savedEmp.getName() + ",\n\n" +
+                        "Welcome to SyncWork! Your account has been successfully created.\n\n" +
+                        "Here are your login credentials:\n" +
+                        "Username: " + savedEmp.getEmpCode() + "\n" +
+                        "Temporary Password: " + randomPassword + "\n\n" +
+                        "For security reasons, please change your password after your first login.";
+                emailService.sendEmail(savedEmp.getEmail(), subject, body);
+            } catch (Exception e) {
+                System.err.println("Async Email failed to send: " + e.getMessage());
+            }
+        });
+        
         return savedEmp;
     }
 
