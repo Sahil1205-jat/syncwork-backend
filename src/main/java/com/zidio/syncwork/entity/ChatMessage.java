@@ -16,6 +16,7 @@ public class ChatMessage {
     private String sender;
     private String content;
     private Instant timestamp; // Changed from LocalDateTime to Instant
+    private String department; // Added for channel routing
 
     // Default constructor
     public ChatMessage() {
@@ -34,4 +35,7 @@ public class ChatMessage {
 
     public Instant getTimestamp() { return timestamp; }
     public void setTimestamp(Instant timestamp) { this.timestamp = timestamp; }
+
+    public String getDepartment() { return department; }
+    public void setDepartment(String department) { this.department = department; }
 }

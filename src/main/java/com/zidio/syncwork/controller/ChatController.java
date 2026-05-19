@@ -7,11 +7,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -21,10 +23,13 @@ import java.util.Map;
 public class ChatController {
 
     @Autowired
-    private ChatService chatService; // Use the service instead of the repository directly
+    private ChatService chatService; 
 
     @Autowired
-    private ChatMessageRepository chatMessageRepository; // Keep for history for now
+    private ChatMessageRepository chatMessageRepository; 
+
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate; // For dynamic channel routing
 
     @GetMapping("/history")
     public List<ChatMessage> getChatHistory() {
@@ -32,25 +37,56 @@ public class ChatController {
     }
 
     /**
-     * Handles new messages. It now uses the service to save the message
-     * and returns the complete message object (with ID) to all clients.
+     * Handles new messages and routes them to their specific department/channel topic dynamically.
      */
     @MessageMapping("/chat.sendMessage")
-    @SendTo("/topic/public")
-    public ChatMessage sendMessage(@Payload ChatMessage chatMessage) {
-        // The service saves the message and returns the instance with the ID
-        return chatService.saveMessage(chatMessage);
+    public void sendMessage(@Payload ChatMessage chatMessage) {
+        // Save to database
+        ChatMessage savedMessage = chatService.saveMessage(chatMessage);
+        
+        // Determine the target department channel
+        String channel = savedMessage.getDepartment();
+        if (channel == null || channel.trim().isEmpty()) {
+            channel = "General";
+        }
+        
+        // Broadcast dynamically to subscribers of this specific channel: /topic/chat/{channel}
+        messagingTemplate.convertAndSend("/topic/chat/" + channel, savedMessage);
     }
 
     /**
-     * Handles deleting a message. It uses the service for a transactional delete
-     * and returns a confirmation payload with the ID of the deleted message.
+     * Handles deleting/unsending a message. Matches the frontend destination "/app/chat.deleteMessage".
      */
+    @MessageMapping("/chat.deleteMessage")
+    public void deleteMessage(@Payload Map<String, Object> payload) {
+        Long messageId = null;
+        Object idObj = payload.get("id");
+        if (idObj instanceof Number) {
+            messageId = ((Number) idObj).longValue();
+        } else if (idObj instanceof String) {
+            messageId = Long.parseLong((String) idObj);
+        }
+
+        if (messageId != null) {
+            chatService.deleteMessage(messageId);
+        }
+
+        String channel = (String) payload.get("department");
+        if (channel == null || channel.trim().isEmpty()) {
+            channel = "General";
+        }
+
+        // Broadcast the deleted message ID dynamically to subscribers: /topic/chat.delete/{channel}
+        Map<String, Object> response = new HashMap<>();
+        response.put("id", messageId);
+        response.put("department", channel);
+
+        messagingTemplate.convertAndSend("/topic/chat.delete/" + channel, response);
+    }
+
+    // Keep unsendMessage for backward compatibility just in case
     @MessageMapping("/chat.unsendMessage")
-    @SendTo("/topic/public")
-    public Map<String, Long> unsendMessage(@Payload Map<String, Long> payload) {
-        Long messageId = payload.get("id");
-        chatService.deleteMessage(messageId);
-        return Map.of("deletedMessageId", messageId);
+    public void unsendMessage(@Payload Map<String, Object> payload) {
+        deleteMessage(payload);
     }
 }
