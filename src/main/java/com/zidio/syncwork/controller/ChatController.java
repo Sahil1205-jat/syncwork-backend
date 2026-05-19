@@ -8,10 +8,8 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.http.ResponseEntity;
 
 import java.util.HashMap;
 import java.util.List;
@@ -34,6 +32,44 @@ public class ChatController {
     @GetMapping("/history")
     public List<ChatMessage> getChatHistory() {
         return chatMessageRepository.findAll();
+    }
+
+    @PostMapping("/send")
+    public ResponseEntity<ChatMessage> sendHttpMessage(@RequestBody ChatMessage chatMessage) {
+        ChatMessage saved = chatService.saveMessage(chatMessage);
+        String channel = saved.getDepartment();
+        if (channel == null || channel.trim().isEmpty()) {
+            channel = "General";
+        }
+        messagingTemplate.convertAndSend("/topic/chat/" + channel, saved);
+        return ResponseEntity.ok(saved);
+    }
+
+    @PostMapping("/delete")
+    public ResponseEntity<Map<String, Object>> deleteHttpMessage(@RequestBody Map<String, Object> payload) {
+        Long messageId = null;
+        Object idObj = payload.get("id");
+        if (idObj instanceof Number) {
+            messageId = ((Number) idObj).longValue();
+        } else if (idObj instanceof String) {
+            messageId = Long.parseLong((String) idObj);
+        }
+
+        if (messageId != null) {
+            chatService.deleteMessage(messageId);
+        }
+
+        String channel = (String) payload.get("department");
+        if (channel == null || channel.trim().isEmpty()) {
+            channel = "General";
+        }
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("id", messageId);
+        response.put("department", channel);
+
+        messagingTemplate.convertAndSend("/topic/chat.delete/" + channel, response);
+        return ResponseEntity.ok(response);
     }
 
     /**
