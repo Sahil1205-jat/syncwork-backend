@@ -13,7 +13,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // The endpoint for the frontend to connect to.
-        registry.addEndpoint("/ws-chat").setAllowedOriginPatterns("*").withSockJS();
+        registry.addEndpoint("/ws-chat")
+                .setAllowedOriginPatterns(
+                    "http://localhost:[*]",
+                    "https://syncwork-frontend.vercel.app",
+                    "https://*.vercel.app"
+                )
+                .withSockJS();
     }
 
     @Override

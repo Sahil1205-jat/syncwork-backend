@@ -38,12 +38,16 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // THE FINAL FIX: Using setAllowedOrigins which is standard, instead of setAllowedOriginPatterns
-        configuration.setAllowedOrigins(Collections.singletonList("*"));
+        // Allow dynamic resolution of localhost and Vercel origins
+        configuration.setAllowedOriginPatterns(Arrays.asList(
+            "http://localhost:[*]",
+            "https://syncwork-frontend.vercel.app",
+            "https://*.vercel.app"
+        ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Collections.singletonList("*"));
-        // This remains crucial for mobile browsers
-        configuration.setAllowCredentials(false);
+        // Enable credentials support for SockJS/WebSockets
+        configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
